@@ -1,42 +1,55 @@
-import threading, time, random
+class Synchronization:
+    def __init__(self):  
+        self.a = [0] * 10
+        self.mutex = [1]
+        self.empty = [10]
+        self.full = [0]
+        self.in_ = [0]  
+        self.out = [0]
 
-mutex = threading.Semaphore(1)
-empty = threading.Semaphore(3)
-full = threading.Semaphore(0)
-buffer = []
+    def wait(self, x):
+        if x[0] > 0:
+            x[0] -= 1
 
-def producer():
-    for i in range(5):
-        item = random.randint(1, 100)
-        empty.acquire()
-        mutex.acquire()
-        buffer.append(item)
-        print("Produced:", item)
-        mutex.release()
-        full.release()
-        time.sleep(1)
+    def signal(self, x):
+        x[0] += 1
 
-def consumer():
-    for i in range(5):
-        full.acquire()
-        mutex.acquire()
-        item = buffer.pop(0)
-        print("Consumed:", item)
-        mutex.release()
-        empty.release()
-        time.sleep(1)
+    def producer(self):
+        if self.empty[0] > 0 and self.mutex[0] == 1:
+            self.wait(self.empty)
+            self.wait(self.mutex)
+            data = int(input("Data to be produced: "))
+            self.a[self.in_[0]] = data
+            self.in_[0] = (self.in_[0] + 1) % 10
+            self.signal(self.mutex)
+            self.signal(self.full)
+        else:
+            print("Buffer is full, cannot produce!")
 
-t1 = threading.Thread(target=producer)
-t2 = threading.Thread(target=consumer)
-t1.start()
-t2.start()
-t1.join()
-t2.join()
+    def consumer(self):
+        if self.full[0] > 0 and self.mutex[0] == 1:
+            self.wait(self.full)
+            self.wait(self.mutex)
+            print("Data consumed is:", self.a[self.out[0]])
+            self.out[0] = (self.out[0] + 1) % 10
+            self.signal(self.mutex)
+            self.signal(self.empty)
+        else:
+            print("Buffer is empty, cannot consume!")
 
-# Sample Output:
-# Produced: 42
-# Consumed: 42
-# Produced: 75
-# Consumed: 75
-# Produced: 13
-# Consumed: 13
+def main():
+    s = Synchronization()
+    while True:
+        print("\n1. Producer\n2. Consumer\n3. Exit")
+        fchoice = int(input("Enter your choice: "))
+        if fchoice == 1:
+            s.producer()
+        elif fchoice == 2:
+            s.consumer()
+        elif fchoice == 3:
+            break
+        else:
+            print("Invalid choice!")
+
+if __name__ == "__main__": 
+    main()
